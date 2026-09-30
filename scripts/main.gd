@@ -4,62 +4,67 @@ const WorldDef = preload("res://scripts/core/world_definition.gd")
 const WorldLayer = preload("res://scripts/world/world_layer.gd")
 const WorldCoordinates = preload("res://scripts/core/world_coordinates.gd")
 const ChunkManagerType = preload("res://scripts/world/chunk_manager.gd")
+const TerrainGeneratorType = preload("res://scripts/world/terrain_generator.gd")
+const WorldOverviewType = preload("res://scripts/world/world_overview.gd")
 const SandboxCameraType = preload("res://scripts/camera/sandbox_camera.gd")
 const LayerPanelType = preload("res://scripts/ui/layer_debug_panel.gd")
 
 var camera: SandboxCamera
 var chunk_manager: ChunkManager
 var status_label: Label
+var world_overview: WorldOverview
 
 func _ready() -> void:
+    DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
     _build_environment()
     _build_world_root()
     _build_camera()
+    _build_overview()
     _build_ui()
-
     chunk_manager.update_streaming(camera.global_position)
 
 func _process(_delta: float) -> void:
     if camera != null and chunk_manager != null:
         chunk_manager.update_streaming(camera.global_position)
+        if world_overview != null:
+            world_overview.visible = camera.distance > 9000.0 and chunk_manager.active_layer_id == WorldDef.DEFAULT_LAYER_ID
         _update_status()
 
 func _build_world_root() -> void:
     chunk_manager = ChunkManagerType.new()
     add_child(chunk_manager)
 
-    var origin := MeshInstance3D.new()
-    origin.name = "WorldOrigin"
-    var mesh := SphereMesh.new()
-    mesh.radius = 12.0
-    mesh.height = 24.0
-    origin.mesh = mesh
-    origin.position = Vector3.ZERO
-    var material := StandardMaterial3D.new()
-    material.albedo_color = Color(0.95, 0.72, 0.20)
-    origin.material_override = material
-    add_child(origin)
-
 func _build_camera() -> void:
     camera = SandboxCameraType.new()
     camera.focus = Vector3.ZERO
+    camera.distance = 8200.0
+    camera.min_distance = 80.0
+    camera.max_distance = 260000.0
     add_child(camera)
+
+func _build_overview() -> void:
+    world_overview = WorldOverviewType.new()
+    var generator := TerrainGeneratorType.new()
+    world_overview.build(generator)
+    add_child(world_overview)
 
 func _build_environment() -> void:
     var world_environment := WorldEnvironment.new()
     var environment := Environment.new()
     environment.background_mode = Environment.BG_COLOR
-    environment.background_color = Color(0.035, 0.055, 0.09)
+    environment.background_color = Color(0.025, 0.075, 0.14)
     environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    environment.ambient_light_color = Color(0.72, 0.78, 0.90)
-    environment.ambient_light_energy = 0.8
+    environment.ambient_light_color = Color(0.72, 0.80, 0.95)
+    environment.ambient_light_energy = 0.9
+    environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
     world_environment.environment = environment
     add_child(world_environment)
 
     var sun := DirectionalLight3D.new()
     sun.rotation_degrees = Vector3(-52.0, -25.0, 0.0)
-    sun.light_energy = 1.15
-    sun.shadow_enabled = false
+    sun.light_energy = 1.35
+    sun.shadow_enabled = true
+    sun.directional_shadow_max_distance = 5000.0
     add_child(sun)
 
 func _build_ui() -> void:
@@ -79,7 +84,7 @@ func _on_layer_selected(layer_id: int) -> void:
 func _update_status() -> void:
     var layer_name := WorldLayer.display_name(chunk_manager.active_layer_id)
     var chunk := WorldCoordinates.world_to_chunk(camera.global_position)
-    status_label.text = "阶段 0 · %s · Chunk (%d, %d) · 已加载 %d" % [
+    status_label.text = "Sky Island · %s · Chunk (%d, %d) · 已加载 %d" % [
         layer_name,
         chunk.x,
         chunk.y,
