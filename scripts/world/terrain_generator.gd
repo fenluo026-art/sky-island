@@ -2,8 +2,7 @@ class_name TerrainGenerator
 extends RefCounted
 
 const WorldDef = preload("res://scripts/core/world_definition.gd")
-const GRID_SIZE := 17
-const SAMPLE_STEP: float = WorldDef.CHUNK_SIZE_M / float(GRID_SIZE - 1)
+const DEFAULT_GRID_SIZE := 17
 
 var _macro := FastNoiseLite.new()
 var _detail := FastNoiseLite.new()
@@ -19,28 +18,29 @@ func _init() -> void:
     _detail.fractal_octaves = 3
     _detail.fractal_gain = 0.5
 
-func build_chunk_mesh(chunk_x: int, chunk_z: int) -> ArrayMesh:
+func build_chunk_mesh(chunk_x: int, chunk_z: int, grid_size: int = DEFAULT_GRID_SIZE) -> ArrayMesh:
     var vertices := PackedVector3Array()
     var normals := PackedVector3Array()
     var uvs := PackedVector2Array()
     var colors := PackedColorArray()
     var indices := PackedInt32Array()
+    var sample_step: float = WorldDef.CHUNK_SIZE_M / float(grid_size - 1)
 
-    for z in range(GRID_SIZE):
-        for x in range(GRID_SIZE):
-            var wx: float = float(chunk_x) * WorldDef.CHUNK_SIZE_M + float(x) * SAMPLE_STEP
-            var wz: float = float(chunk_z) * WorldDef.CHUNK_SIZE_M + float(z) * SAMPLE_STEP
+    for z in range(grid_size):
+        for x in range(grid_size):
+            var wx: float = float(chunk_x) * WorldDef.CHUNK_SIZE_M + float(x) * sample_step
+            var wz: float = float(chunk_z) * WorldDef.CHUNK_SIZE_M + float(z) * sample_step
             var h: float = height_at(wx, wz)
-            vertices.append(Vector3(float(x) * SAMPLE_STEP, h, float(z) * SAMPLE_STEP))
+            vertices.append(Vector3(float(x) * sample_step, h, float(z) * sample_step))
             normals.append(Vector3.UP)
-            uvs.append(Vector2(float(x) / float(GRID_SIZE - 1), float(z) / float(GRID_SIZE - 1)))
+            uvs.append(Vector2(float(x) / float(grid_size - 1), float(z) / float(grid_size - 1)))
             colors.append(terrain_color(h))
 
-    for z in range(GRID_SIZE - 1):
-        for x in range(GRID_SIZE - 1):
-            var a := z * GRID_SIZE + x
+    for z in range(grid_size - 1):
+        for x in range(grid_size - 1):
+            var a := z * grid_size + x
             var b := a + 1
-            var c := a + GRID_SIZE
+            var c := a + grid_size
             var d := c + 1
             indices.append_array(PackedInt32Array([a, c, b, b, c, d]))
 
@@ -58,8 +58,7 @@ func build_chunk_mesh(chunk_x: int, chunk_z: int) -> ArrayMesh:
     return mesh
 
 func height_at(wx: float, wz: float) -> float:
-    var p := Vector2(wx, wz)
-    var rotated := Vector2(p.x * 0.94 - p.y * 0.34, p.x * 0.34 + p.y * 0.94)
+    var rotated := Vector2(wx * 0.94 - wz * 0.34, wx * 0.34 + wz * 0.94)
     var nx: float = rotated.x / 159000.0
     var nz: float = rotated.y / 126000.0
     var radial := Vector2(nx, nz).length()
