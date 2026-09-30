@@ -3,7 +3,7 @@ name: Build Sky Island Android
 on:
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["main", "phase-0-foundation"]
 
 jobs:
   build:
@@ -17,17 +17,41 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Android SDK
+      - name: Configure Android SDK
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-$ANDROID_HOME}" >> "$GITHUB_ENV"
+          echo "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/platform-tools" >> "$GITHUB_PATH"
+          echo "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/build-tools/35.0.0" >> "$GITHUB_PATH"
           yes | sdkmanager --licenses >/dev/null
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Install Android debug keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US" \
+              -noprompt
+          fi
+          keytool -list -keystore "$HOME/.android/debug.keystore" \
+            -storepass android -alias androiddebugkey
 
       - name: Install Godot
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           GODOT_VERSION="4.4.1"
           wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
           unzip -q "Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
@@ -36,7 +60,8 @@ jobs:
 
           wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
           mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-          unzip -q "Godot_v${GODOT_VERSION}-stable_export_templates.tpz"             -d "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          unzip -q "Godot_v${GODOT_VERSION}-stable_export_templates.tpz" \
+            -d "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
 
       - name: Validate project
         run: |
@@ -45,10 +70,12 @@ jobs:
 
       - name: Export APK
         run: |
+          set -euo pipefail
           mkdir -p build
-          godot --headless --path . --export-release "Android" "build/SkyIsland-1.1.2.apk"
+          godot --headless --path . --export-debug "Android" "build/SkyIsland-1.2.0.apk"
+          test -s "build/SkyIsland-1.2.0.apk"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SkyIsland-1.1.2
-          path: build/SkyIsland-1.1.2.apk
+          name: SkyIsland-1.2.0
+          path: build/SkyIsland-1.2.0.apk

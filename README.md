@@ -1,23 +1,16 @@
-# Sky Island / 天穹之境
+# Sky Island
 
-这是一个精简的 Godot 4.4.1 手机工程。
+阶段 0：底层工程架构重建。
 
-## 当前工程内容
+当前目标不是制作城市或建筑，而是建立可以继续承载约 80,000 km² 世界的 Godot 底座：
 
-- 程序化地表 Chunk
-- 基础山丘
-- 湖泊
-- Godot 4.4.1 / GL Compatibility
-- Android ARM64 导出
-- 固定 application id：`com.fenluo.skyisland`
-- 当前版本：1.1.2
+- 统一 `(layer_id, x, z)` 世界坐标体系
+- 80,000 km² 世界逻辑尺寸
+- Chunk 动态加载与卸载
+- 基础 LOD
+- 地表与地下多层接口
+- 世界区域数据接口
+- 移动端沙盘摄像机与触控
+- 基础性能预算
 
-## 说明
-
-80,000 km² 是世界逻辑目标面积，不把 80,000 km² 的全部美术资源一次性塞进 APK。
-当前工程先保证底层项目能够正确解析、导出和运行；后续大型地形、城市、建筑、生态和地下设施继续接入 Chunk / LOD。
-
-## Android
-
-后续 APK 使用相同 application id，并递增 version code / version name。
-如果签名密钥发生变化，Android 不能直接覆盖安装旧签名 APK。
+阶段 0 的可视内容是调试 Chunk，而不是最终地形。后续阶段再逐步加入真实地形、区域、道路、城市、建筑、地下设施、天气与生态。
