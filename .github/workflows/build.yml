@@ -3,7 +3,7 @@ name: Build Sky Island Android
 on:
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["main", "phase-0-foundation"]
 
 jobs:
   build:
@@ -17,26 +17,53 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-35 build-tools;35.0.0 cmake;3.10.2.4988404 ndk;23.2.8568313"
+
+      - name: Install Android debug keystore
         shell: bash
         run: |
-          set -e
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US" \
+              -noprompt
+          fi
+          keytool -list -keystore "$HOME/.android/debug.keystore" \
+            -storepass android -alias androiddebugkey
 
       - name: Install Godot
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           GODOT_VERSION="4.4.1"
-          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q "Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          GODOT_ZIP="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          TEMPLATE_TPZ="Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/${GODOT_ZIP}"
+          unzip -q "$GODOT_ZIP"
           chmod +x "Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
 
-          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-          unzip -q "Godot_v${GODOT_VERSION}-stable_export_templates.tpz"             -d "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/${TEMPLATE_TPZ}"
+          TEMPLATE_ROOT="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          TEMP_TEMPLATES="$RUNNER_TEMP/godot_templates"
+          rm -rf "$TEMPLATE_ROOT" "$TEMP_TEMPLATES"
+          mkdir -p "$TEMPLATE_ROOT" "$TEMP_TEMPLATES"
+          unzip -q "$TEMPLATE_TPZ" -d "$TEMP_TEMPLATES"
+          cp -a "$TEMP_TEMPLATES/templates/." "$TEMPLATE_ROOT/"
+          test -s "$TEMPLATE_ROOT/android_debug.apk"
+          test -s "$TEMPLATE_ROOT/android_release.apk"
 
       - name: Validate project
         run: |
@@ -44,11 +71,25 @@ jobs:
           godot --headless --path . --editor --quit --verbose
 
       - name: Export APK
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/.github/android-debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
+          set -uo pipefail
           mkdir -p build
-          godot --headless --path . --export-release "Android" "build/SkyIsland-1.1.2.apk"
+          cp "$HOME/.android/debug.keystore" "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
+          godot --headless --path . --export-debug "Android" "build/SkyIsland-1.2.0.apk" 2>&1 | tee build/export.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo "Godot export failed with exit code $status" >> build/export.log
+            exit "$status"
+          fi
+          test -s "build/SkyIsland-1.2.0.apk"
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: SkyIsland-1.1.2
-          path: build/SkyIsland-1.1.2.apk
+          name: SkyIsland-build-diagnostics-${{ github.run_number }}
+          path: build/
+          if-no-files-found: error

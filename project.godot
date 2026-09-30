@@ -13,9 +13,10 @@ window/stretch/mode="canvas_items"
 [rendering]
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
 
 [android]
 package/unique_name="com.fenluo.skyisland"
 package/name="Sky Island"
-version/code=4
-version/name="1.1.2"
+version/code=5
+version/name="1.2.0"
