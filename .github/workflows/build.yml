@@ -47,15 +47,23 @@ jobs:
         run: |
           set -euo pipefail
           GODOT_VERSION="4.4.1"
-          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q "Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          GODOT_ZIP="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          TEMPLATE_TPZ="Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/${GODOT_ZIP}"
+          unzip -q "$GODOT_ZIP"
           chmod +x "Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
 
-          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-          unzip -q "Godot_v${GODOT_VERSION}-stable_export_templates.tpz" \
-            -d "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/${TEMPLATE_TPZ}"
+          TEMPLATE_ROOT="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          TEMP_TEMPLATES="$RUNNER_TEMP/godot_templates"
+          rm -rf "$TEMPLATE_ROOT" "$TEMP_TEMPLATES"
+          mkdir -p "$TEMPLATE_ROOT" "$TEMP_TEMPLATES"
+          unzip -q "$TEMPLATE_TPZ" -d "$TEMP_TEMPLATES"
+          cp -a "$TEMP_TEMPLATES/templates/." "$TEMPLATE_ROOT/"
+          test -s "$TEMPLATE_ROOT/android_debug.apk"
+          test -s "$TEMPLATE_ROOT/android_release.apk"
 
       - name: Validate project
         run: |
