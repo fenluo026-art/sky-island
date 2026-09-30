@@ -2,8 +2,8 @@ class_name LodProfile
 extends RefCounted
 
 const LEVEL_0_DISTANCE_M := 700.0
-const LEVEL_1_DISTANCE_M := 1600.0
-const LEVEL_2_DISTANCE_M := 3200.0
+const LEVEL_1_DISTANCE_M := 1800.0
+const LEVEL_2_DISTANCE_M := 4200.0
 
 static func level_for_distance(distance_m: float) -> int:
     if distance_m < LEVEL_0_DISTANCE_M:
@@ -14,13 +14,13 @@ static func level_for_distance(distance_m: float) -> int:
         return 2
     return 3
 
-static func subdivisions_for_level(level: int) -> int:
+static func grid_size_for_level(level: int) -> int:
     match level:
         0:
-            return 8
+            return 17
         1:
-            return 4
+            return 9
         2:
-            return 2
+            return 5
         _:
-            return 1
+            return 3
