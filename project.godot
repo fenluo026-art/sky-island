@@ -17,5 +17,5 @@ renderer/rendering_method.mobile="gl_compatibility"
 [android]
 package/unique_name="com.fenluo.skyisland"
 package/name="Sky Island"
-version/code=3
-version/name="1.1.1"
+version/code=4
+version/name="1.1.2"
