@@ -12,9 +12,12 @@ const LayerPanelType = preload("res://scripts/ui/layer_debug_panel.gd")
 var camera: SandboxCamera
 var chunk_manager: ChunkManager
 var status_label: Label
+var orientation_button: Button
 var world_overview: WorldOverview
+var portrait_mode := false
 
 func _ready() -> void:
+    DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
     DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
     _build_environment()
     _build_world_root()
@@ -76,6 +79,20 @@ func _build_ui() -> void:
     status_label.position = Vector2(18, 92)
     status_label.add_theme_font_size_override("font_size", 18)
     add_child(status_label)
+
+    orientation_button = Button.new()
+    orientation_button.text = "竖屏" if not portrait_mode else "横屏"
+    orientation_button.position = Vector2(1760, 24)
+    orientation_button.size = Vector2(130, 54)
+    orientation_button.add_theme_font_size_override("font_size", 20)
+    orientation_button.pressed.connect(_toggle_orientation)
+    add_child(orientation_button)
+
+func _toggle_orientation() -> void:
+    portrait_mode = not portrait_mode
+    var target := DisplayServer.SCREEN_PORTRAIT if portrait_mode else DisplayServer.SCREEN_LANDSCAPE
+    DisplayServer.screen_set_orientation(target)
+    orientation_button.text = "横屏" if portrait_mode else "竖屏"
 
 func _on_layer_selected(layer_id: int) -> void:
     chunk_manager.set_active_layer(layer_id)
