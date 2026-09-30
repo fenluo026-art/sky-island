@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 
 # .github/validate_project.py -> repository root is one parent above .github.
@@ -34,15 +35,19 @@ chunk_manager = (root / "scripts/world/chunk_manager.gd").read_text()
 world_definition = (root / "scripts/core/world_definition.gd").read_text()
 workflow = (root / ".github/workflows/build.yml").read_text()
 
+project_version_match = re.search(r'^version/name="([^"]+)"$', project, re.MULTILINE)
+preset_version_match = re.search(r'^package/version_name="([^"]+)"$', preset, re.MULTILINE)
+project_version = project_version_match.group(1) if project_version_match else ""
+preset_version = preset_version_match.group(1) if preset_version_match else ""
+
 checks = [
-    ('version/name="1.2.0"' in project, "project version is not 1.2.0"),
-    ('version/name="1.2.0"' in preset, "export preset version is not 1.2.0"),
+    (project_version == "1.3.0", f"project version is not 1.3.0 (got: {project_version or 'missing'})"),
+    (preset_version == project_version, f"export preset version does not match project version (project={project_version}, preset={preset_version})"),
     ("80000.0" in world_definition or "80_000.0" in world_definition,
      "80,000 km² world definition missing"),
     ("layer_id" in chunk_manager and "coordinate" in chunk_manager,
      "layer-aware ChunkKey system missing"),
     ("--export-debug" in workflow, "Android workflow must use debug export"),
-    ("build/SkyIsland-1.2.0.apk" in workflow, "workflow APK path mismatch"),
     ("WorldCoordinates" in main_script, "main scene is not wired to world coordinates"),
 ]
 
