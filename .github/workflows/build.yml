@@ -76,13 +76,20 @@ jobs:
           GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
-          set -euo pipefail
-          cp "$HOME/.android/debug.keystore" "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
+          set -uo pipefail
           mkdir -p build
-          godot --headless --path . --export-debug "Android" "build/SkyIsland-1.2.0.apk"
+          cp "$HOME/.android/debug.keystore" "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
+          godot --headless --path . --export-debug "Android" "build/SkyIsland-1.2.0.apk" 2>&1 | tee build/export.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo "Godot export failed with exit code $status" >> build/export.log
+            exit "$status"
+          fi
           test -s "build/SkyIsland-1.2.0.apk"
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: SkyIsland-1.2.0
-          path: build/SkyIsland-1.2.0.apk
+          name: SkyIsland-build-diagnostics-${{ github.run_number }}
+          path: build/
+          if-no-files-found: error
