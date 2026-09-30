@@ -1,0 +1,79 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Install Godot 4.4.1
+        run: |
+          wget -q https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q Godot_v4.4.1-stable_linux.x86_64.zip
+          mkdir -p "$HOME/godot"
+          mv Godot_v4.4.1-stable_linux.x86_64 "$HOME/godot/godot"
+          chmod +x "$HOME/godot/godot"
+          echo "$HOME/godot" >> "$GITHUB_PATH"
+
+      - name: Install matching Godot export templates
+        shell: bash
+        run: |
+          set -euxo pipefail
+          GODOT_VERSION="4.4.1.stable"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/$GODOT_VERSION"
+          mkdir -p "$TEMPLATE_DIR"
+          rm -rf /tmp/godot_templates
+          mkdir -p /tmp/godot_templates
+
+          wget -q https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
+          unzip -q Godot_v4.4.1-stable_export_templates.tpz -d /tmp/godot_templates
+          cp -av /tmp/godot_templates/templates/. "$TEMPLATE_DIR/"
+
+          echo "=== Installed templates ==="
+          ls -lah "$TEMPLATE_DIR"
+          test -f "$TEMPLATE_DIR/android_release.apk"
+          test -f "$TEMPLATE_DIR/android_debug.apk"
+          test -f "$TEMPLATE_DIR/android_source.zip"
+
+      - name: Verify project
+        shell: bash
+        run: |
+          set -euxo pipefail
+          godot --version
+          godot --headless --editor --path . --quit
+          grep -n 'name="Android"' export_presets.cfg
+
+      - name: Build APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p build
+          godot --headless --path . --export-release "Android" "build/SkyIsland-1.0.0.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkyIsland-1.0.0
+          path: build/SkyIsland-1.0.0.apk
+          if-no-files-found: error
