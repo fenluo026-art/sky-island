@@ -1,7 +1,8 @@
 from pathlib import Path
 import sys
 
-root = Path(__file__).resolve().parents[2]
+# .github/validate_project.py -> repository root is one parent above .github.
+root = Path(__file__).resolve().parents[1]
 
 required = [
     "project.godot",
@@ -36,7 +37,7 @@ workflow = (root / ".github/workflows/build.yml").read_text()
 checks = [
     ('version/name="1.2.0"' in project, "project version is not 1.2.0"),
     ('version/name="1.2.0"' in preset, "export preset version is not 1.2.0"),
-    ("80_000.0" in world_definition or "80000.0" in world_definition,
+    ("80000.0" in world_definition or "80_000.0" in world_definition,
      "80,000 km² world definition missing"),
     ("layer_id" in chunk_manager and "coordinate" in chunk_manager,
      "layer-aware ChunkKey system missing"),
