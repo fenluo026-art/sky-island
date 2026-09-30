@@ -40,7 +40,7 @@ func _unhandled_input(event: InputEvent) -> void:
             _apply_transform()
         elif touch_points.size() >= 2:
             var previous: Vector2 = touch_points[event.index]
-            var delta := event.position - previous
+            var delta: Vector2 = event.position - previous
             focus += _pan_delta(delta)
             touch_points[event.index] = event.position
             _apply_transform()

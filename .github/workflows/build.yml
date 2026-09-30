@@ -67,8 +67,14 @@ jobs:
 
       - name: Validate project
         run: |
+          set -euo pipefail
+          mkdir -p build
           python3 .github/validate_project.py
-          godot --headless --path . --editor --quit --verbose
+          godot --headless --path . --editor --quit --verbose 2>&1 | tee build/godot-validation.log
+          if grep -q "SCRIPT ERROR:" build/godot-validation.log; then
+            echo "GDScript errors detected during Godot validation."
+            exit 1
+          fi
 
       - name: Export APK
         env:
@@ -78,7 +84,6 @@ jobs:
         run: |
           set -euo pipefail
           cp "$HOME/.android/debug.keystore" "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
-          mkdir -p build
           godot --headless --path . --export-debug "Android" "build/SkyIsland-1.2.0.apk"
           test -s "build/SkyIsland-1.2.0.apk"
 

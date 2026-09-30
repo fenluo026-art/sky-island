@@ -43,8 +43,8 @@ func update_streaming(world_position: Vector3) -> void:
     var remove_ids: Array[String] = []
     for id in loaded_chunks:
         var key: ChunkKeyType = loaded_chunks[id]["key"]
-        var dx := abs(key.coordinate.x - center.x)
-        var dz := abs(key.coordinate.y - center.y)
+        var dx: int = abs(key.coordinate.x - center.x)
+        var dz: int = abs(key.coordinate.y - center.y)
         if max(dx, dz) > Budget.STREAM_UNLOAD_RADIUS:
             remove_ids.append(id)
 
