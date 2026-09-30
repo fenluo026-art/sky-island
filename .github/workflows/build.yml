@@ -71,8 +71,13 @@ jobs:
           godot --headless --path . --editor --quit --verbose
 
       - name: Export APK
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/.github/android-debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
           set -euo pipefail
+          cp "$HOME/.android/debug.keystore" "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
           mkdir -p build
           godot --headless --path . --export-debug "Android" "build/SkyIsland-1.2.0.apk"
           test -s "build/SkyIsland-1.2.0.apk"
