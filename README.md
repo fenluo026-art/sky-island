@@ -49,3 +49,8 @@ com.fenluo.skyisland
 - Chunk 动态生成/卸载框架
 - 近处更高细节、远处更低细节
 - 版本升级至 1.1.0，application id 保持不变
+
+
+## 1.1.0 修正版
+
+本版修复了 Android 导出预设缺失、CI Artifact 路径错误，并收紧了 GDScript 写法以降低解析兼容问题。请先验证本版，不要继续进入第三阶段。
